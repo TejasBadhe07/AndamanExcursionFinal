@@ -22,21 +22,21 @@ export async function GET() {
     
     // Modify content
     // #1 and #2
-    const banner = doc.pageContent?.content?.find((b: any) => b.blockType === 'secondaryBanner');
+    const banner = doc.pageContent?.content?.find((b: any) => b.blockType === 'secondaryBanner') as any;
     if (banner) {
         banner.title = "The Hidden Treasure of Neil Island";
         banner.subtitle = "Bharatpur Beach";
     }
     
     // #3 Activities and Adventure -> Culture and Heritage
-    const serviceFeature = doc.pageContent?.content?.find((b: any) => b.blockType === 'serviceFeature');
+    const serviceFeature = doc.pageContent?.content?.find((b: any) => b.blockType === 'serviceFeature') as any;
     if (serviceFeature) {
         serviceFeature.title = "Culture and Heritage";
         serviceFeature.specialWord = "Heritage";
     }
     
     // #4 Culture and Heritage -> Things to do
-    const visualCategory = doc.pageContent?.content?.find((b: any) => b.blockType === 'visualCategoryGrid');
+    const visualCategory = doc.pageContent?.content?.find((b: any) => b.blockType === 'visualCategoryGrid') as any;
     if (visualCategory) {
         visualCategory.title = "Things to do";
         visualCategory.specialWord = "do";
