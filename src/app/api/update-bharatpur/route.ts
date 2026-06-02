@@ -1,19 +1,20 @@
 import { NextResponse } from 'next/server';
 import { getPayload } from 'payload';
 import config from '@/payload.config';
-import fs from 'fs';
-import path from 'path';
 
-async function uploadImage(payload: any, filePath: string, alt: string) {
-  const absolutePath = path.resolve(filePath);
-  const fileBuffer = fs.readFileSync(absolutePath);
-  const fileName = path.basename(absolutePath);
-  const ext = path.extname(fileName).toLowerCase();
+async function uploadImageFromUrl(payload: any, imageUrl: string, fileName: string, alt: string) {
+  const response = await fetch(imageUrl);
+  if (!response.ok) {
+    throw new Error(`Failed to fetch image: ${imageUrl} - ${response.status}`);
+  }
+  
+  const arrayBuffer = await response.arrayBuffer();
+  const fileBuffer = Buffer.from(arrayBuffer);
+  const ext = fileName.split('.').pop()?.toLowerCase() || 'jpg';
   
   let mimeType = 'image/jpeg';
-  if (ext === '.png') mimeType = 'image/png';
-  else if (ext === '.webp') mimeType = 'image/webp';
-  else if (ext === '.jpg' || ext === '.jpeg') mimeType = 'image/jpeg';
+  if (ext === 'png') mimeType = 'image/png';
+  else if (ext === 'webp') mimeType = 'image/webp';
 
   const mediaDoc = await payload.create({
     collection: 'media',
@@ -31,9 +32,10 @@ async function uploadImage(payload: any, filePath: string, alt: string) {
   return mediaDoc.id;
 }
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
     const payload = await getPayload({ config });
+    const baseUrl = new URL(request.url).origin;
     
     // Find the page
     const existing = await payload.find({
@@ -50,38 +52,43 @@ export async function GET() {
     const doc = existing.docs[0];
     const results: any = {};
 
-    // 1. Upload all images first
-    const rockFormationImageId = await uploadImage(
+    // 1. Upload all images from the public URL
+    const rockFormationImageId = await uploadImageFromUrl(
       payload,
-      'public/images/exp/Coral-Reefs-Andaman.jpg',
+      `${baseUrl}/images/exp/Coral-Reefs-Andaman.jpg`,
+      'Coral-Reefs-Andaman.jpg',
       'Coral Reefs at Bharatpur Beach'
     );
     results.rockFormationImageId = rockFormationImageId;
 
-    const photographyImageId = await uploadImage(
+    const photographyImageId = await uploadImageFromUrl(
       payload,
-      'public/images/exp/d051386c73026e7b4709b0b6dd1d1058.jpg',
+      `${baseUrl}/images/exp/d051386c73026e7b4709b0b6dd1d1058.jpg`,
+      'd051386c73026e7b4709b0b6dd1d1058.jpg',
       'Photography at Natural Rock Formation'
     );
     results.photographyImageId = photographyImageId;
 
-    const marineExplorationImageId = await uploadImage(
+    const marineExplorationImageId = await uploadImageFromUrl(
       payload,
-      'public/images/exp/photo-20251004-103944-3028803057.jpg',
+      `${baseUrl}/images/exp/photo-20251004-103944-3028803057.jpg`,
+      'photo-20251004-103944-3028803057.jpg',
       'Marine Exploration at Bharatpur Beach'
     );
     results.marineExplorationImageId = marineExplorationImageId;
 
-    const cultureHeritageImageId = await uploadImage(
+    const cultureHeritageImageId = await uploadImageFromUrl(
       payload,
-      'public/images/exp/neil-island-travel-guide-natural-bridge.png',
+      `${baseUrl}/images/exp/neil-island-travel-guide-natural-bridge.png`,
+      'neil-island-travel-guide-natural-bridge.png',
       'Natural Rock Formation at Neil Island'
     );
     results.cultureHeritageImageId = cultureHeritageImageId;
 
-    const heroImageId = await uploadImage(
+    const heroImageId = await uploadImageFromUrl(
       payload,
-      'public/images/exp/8e7965b3-74e6-478a-bcda-088346037edd.jpeg',
+      `${baseUrl}/images/exp/8e7965b3-74e6-478a-bcda-088346037edd.jpeg`,
+      '8e7965b3-74e6-478a-bcda-088346037edd.jpeg',
       'Bharatpur Beach Hero Image'
     );
     results.heroImageId = heroImageId;
