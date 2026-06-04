@@ -29,15 +29,15 @@ export const SectionTitle = ({
 
   // Calculate responsive offset based on viewport
   const getResponsiveOffset = () => {
-    if (typeof window === "undefined") return 10; // SSR fallback
+    if (typeof window === "undefined") return -4; // SSR fallback
 
     const vw = window.innerWidth;
 
-    if (vw <= 360) return 1;
-    if (vw <= 480) return 2;
-    if (vw <= 768) return 4;
-    if (vw <= 1024) return 8;
-    return 10;
+    if (vw <= 360) return 0;
+    if (vw <= 480) return -1;
+    if (vw <= 768) return -2;
+    if (vw <= 1024) return -4;
+    return -6;
   };
 
   // Use the utility hook for underline positioning with responsive offset
