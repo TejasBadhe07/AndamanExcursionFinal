@@ -16,19 +16,55 @@ export async function GET(req: NextRequest) {
 
   try {
     // Check 1: Environment variables
+    // PHONEPE_API_URL is deliberately not required — it is only read in sandbox mode.
     const envVars = [
+      'PHONEPE_ENV',
       'PHONEPE_MERCHANT_ID',
       'PHONEPE_SALT_KEY',
-      'PHONEPE_API_URL',
       'NEXT_PUBLIC_BASE_URL',
     ];
 
     const missingVars = envVars.filter(v => !process.env[v]);
-    
+
     healthChecks.checks.push({
       name: 'environment_variables',
       status: missingVars.length === 0 ? 'healthy' : 'unhealthy',
       details: missingVars.length > 0 ? `Missing: ${missingVars.join(', ')}` : undefined,
+    });
+
+    // Check 1b: Resolved PhonePe hosts
+    // A live site talking to api-preprod/mercury-uat takes no real money. Surface the
+    // hosts we actually resolved so this is verifiable without running a test payment.
+    const authHost = config.isProduction
+      ? process.env.PHONEPE_AUTH_URL || 'https://api.phonepe.com/apis/identity-manager'
+      : process.env.PHONEPE_API_URL || 'https://api-preprod.phonepe.com/apis/pg-sandbox';
+    const pgHost = config.isProduction
+      ? process.env.PHONEPE_PG_URL || 'https://api.phonepe.com/apis/pg'
+      : process.env.PHONEPE_API_URL || 'https://api-preprod.phonepe.com/apis/pg-sandbox';
+
+    // On a real deployment, sandbox hosts mean customers land on the PhonePe test simulator.
+    const sandboxOnLiveDeploy =
+      !config.isProduction && process.env.VERCEL_ENV === 'production';
+
+    healthChecks.checks.push({
+      name: 'phonepe_endpoints',
+      status: sandboxOnLiveDeploy ? 'unhealthy' : 'healthy',
+      details: sandboxOnLiveDeploy
+        ? `SANDBOX endpoints on a production deployment — set PHONEPE_ENV=production and swap in production credentials. auth=${authHost} pg=${pgHost}`
+        : `auth=${authHost} pg=${pgHost}`,
+    });
+
+    // Check 1c: Callback signature bypass
+    // validateCallback() returns true on signature mismatch when dev mode is on.
+    const devModeOnLiveDeploy =
+      process.env.PHONEPE_DEV_MODE === 'true' && process.env.VERCEL_ENV === 'production';
+
+    healthChecks.checks.push({
+      name: 'callback_signature_enforcement',
+      status: devModeOnLiveDeploy ? 'unhealthy' : 'healthy',
+      details: devModeOnLiveDeploy
+        ? 'PHONEPE_DEV_MODE=true on a production deployment — forged callbacks are accepted. Set PHONEPE_DEV_MODE=false.'
+        : undefined,
     });
 
     // Check 2: OAuth token
