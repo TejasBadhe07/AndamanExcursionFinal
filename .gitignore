@@ -57,3 +57,7 @@ env
 
 # machine-specific Claude Code overrides (local proxy URL, per-machine opt-ins)
 .claude/settings.local.json
+
+# editor/OS/backup junk
+*.bak
+Thumbs.db
