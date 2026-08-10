@@ -20,7 +20,7 @@ export class WhatsAppNotificationChannel extends BaseNotificationChannel {
   private client: plivo.Client | null = null;
 
   // Support phone number for all templates (format as shown in screenshots)
-  private readonly SUPPORT_PHONE = "+91-8107664041";
+  private readonly SUPPORT_PHONE = "+91-9332908036";
 
   // Approved Plivo template names (Meta-approved)
   private readonly templates = {

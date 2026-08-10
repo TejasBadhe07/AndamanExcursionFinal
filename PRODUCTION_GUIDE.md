@@ -113,12 +113,21 @@ MONGODB_URI=mongodb+srv://your-prod-database
 PAYLOAD_SECRET=your-production-secret-key
 PAYLOAD_PUBLIC_SERVER_URL=https://yourdomain.com
 
-# PhonePe Production
-PHONEPE_MERCHANT_ID=your-production-merchant-id
-PHONEPE_SALT_KEY=your-production-salt-key
+# PhonePe Production (Checkout API v2 / OAuth)
+# PHONEPE_ENV is the ONLY switch that selects production vs sandbox. It is an exact
+# string match — unset, "prod", or "Production" all silently fall back to the UAT
+# sandbox, which serves the mercury-uat checkout page and a payment simulator.
+PHONEPE_ENV=production
+# v2 uses OAuth. Despite the legacy names, these hold the Client ID / Client Secret
+# from the PhonePe merchant dashboard. Production values differ from UAT values.
+PHONEPE_MERCHANT_ID=your-production-client-id
+PHONEPE_SALT_KEY=your-production-client-secret
 PHONEPE_SALT_INDEX=1
-PHONEPE_API_URL=https://api.phonepe.com/apis/hermes
 PHONEPE_DEV_MODE=false
+# Do NOT set PHONEPE_API_URL in production — it is only read on the sandbox branch.
+# Production hosts default correctly; override only if PhonePe issued different ones:
+#   PHONEPE_AUTH_URL=https://api.phonepe.com/apis/identity-manager
+#   PHONEPE_PG_URL=https://api.phonepe.com/apis/pg
 
 # UploadThing (if using)
 UPLOADTHING_TOKEN=your-uploadthing-token
@@ -141,9 +150,16 @@ ACTIVITY_API_KEY=your-activity-api-key
 ### Critical Changes from Development
 
 **PhonePe:**
-- ✅ `PHONEPE_API_URL` → `https://api.phonepe.com/apis/hermes` (prod)
-- ✅ `PHONEPE_DEV_MODE` → `false`
-- ✅ Use production merchant credentials
+- ✅ `PHONEPE_ENV` → `production` — **the only switch that leaves sandbox.** Without it
+  the live site sends customers to `mercury-uat.phonepe.com` and a payment simulator,
+  and no real money is ever taken.
+- ✅ Replace `PHONEPE_MERCHANT_ID` / `PHONEPE_SALT_KEY` with the **production** Client ID
+  and Client Secret. UAT credentials return 401 against the production host, so these
+  must change in the same deploy as `PHONEPE_ENV`.
+- ✅ `PHONEPE_DEV_MODE` → `false`. When true, `validateCallback()` returns `true` on a
+  signature mismatch, so forged payment callbacks are accepted.
+- ✅ Remove `PHONEPE_API_URL` (v1/hermes leftover — ignored once `PHONEPE_ENV=production`)
+- ✅ Verify with `GET /api/payments/phonepe/health` → `"environment": "production"`
 
 **Security:**
 - ✅ Generate new `PAYLOAD_SECRET` (min 32 characters)

@@ -50,3 +50,14 @@ package-lock.json
 
 CLIENT_CREDENTIALS.md
 env
+
+# AI tooling local caches (rebuild automatically, ~13MB)
+.tokensave/
+.code-review-graph/
+
+# machine-specific Claude Code overrides (local proxy URL, per-machine opt-ins)
+.claude/settings.local.json
+
+# editor/OS/backup junk
+*.bak
+Thumbs.db

@@ -165,7 +165,7 @@ export const BookingEmailTemplate: React.FC<BookingEmailTemplateProps> = ({
             <Section style={contactSection}>
               <Heading style={h2}>Contact Information</Heading>
               <Text style={text}>
-                📞 Phone: {contactPhone || "+91-XXXXX-XXXXX"}
+                📞 Phone: {contactPhone || "+91-9332908036"}
               </Text>
               <Text style={text}>📧 Email: booking@andamanexcursion.com</Text>
               <Text style={text}>
