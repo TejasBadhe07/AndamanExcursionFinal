@@ -1,10 +1,57 @@
 # PhonePe Production Payment Failure — Investigation Handoff
 
-**Status:** Root cause identified. Fix is **not** applied — it is an environment-variable
-change on the client's Vercel account, plus credentials that must come from the client's
-PhonePe merchant dashboard. **Nothing in production has been changed.**
+**Status:** ✅ **RESOLVED (2026-08-05).** Fix applied in the client's Vercel production
+environment; live checkout now reaches the real PhonePe gateway and requests a real payment.
+See **RESOLUTION** below. The production fix was entirely Vercel env-var changes — **no code
+deploy** — so this branch is documentation + tooling only.
 
-**Branch:** `fix/phonepe-production-env` (do not merge to `main` until step 1 below is done)
+**Branch:** `fix/phonepe-production-env` (kept as a record; not required in `main`)
+
+---
+
+## RESOLUTION (2026-08-05)
+
+All three open questions resolved and the failure fixed.
+
+1. **PhonePe production onboarding — APPROVED.** Confirmed in the merchant dashboard
+   (Developer Settings → API Keys → "Production Credentials", Test Mode OFF).
+2. **`client_version` = `1`** — matches the hardcoded value; no code change needed.
+3. **`PHONEPE_DEV_MODE`** — set to `false` in Vercel. Historical value unverified; for a
+   past-booking audit, search production logs for
+   `"Callback signature mismatch in dev mode"` — absence means no forged callback was accepted.
+
+### Actual root cause (two layers)
+
+- `PHONEPE_ENV` was not `production`, so the app ran against the UAT sandbox. Setting it to
+  `production` surfaced a **second, deeper** problem:
+- Stale **`PHONEPE_AUTH_URL`, `PHONEPE_PG_URL`, `PHONEPE_API_URL`** env vars (added May 25,
+  before the v2 migration) were **overriding** the code's correct production defaults. In
+  production the OAuth host is `process.env.PHONEPE_AUTH_URL || ".../identity-manager"`, so the
+  stale `PHONEPE_AUTH_URL` sent valid production credentials to the wrong endpoint → **HTTP
+  401** on token generation → `create-order` returned 500 → the checkout page hung with no
+  redirect.
+
+### What fixed it (Vercel → Production scope)
+
+- `PHONEPE_ENV = production`
+- `PHONEPE_MERCHANT_ID` = production Client ID, `PHONEPE_SALT_KEY` = production Client Secret
+- `PHONEPE_SALT_INDEX = 1`, `PHONEPE_DEV_MODE = false`
+- **Deleted `PHONEPE_AUTH_URL`, `PHONEPE_PG_URL`, `PHONEPE_API_URL`** so the code falls back to
+  its correct built-in production hosts (`.../identity-manager` and `.../pg`).
+- Redeploy (env changes only take effect on a new deployment).
+
+### How the credentials were verified independently
+
+Before touching app config, a direct OAuth call to
+`https://api.phonepe.com/apis/identity-manager/v1/oauth/token` with the production Client ID +
+Secret returned a valid `access_token`. That proved both the credentials **and** PhonePe's
+production API activation, isolating the fault to the stale URL override rather than the keys.
+
+### Remaining verification
+
+A ~₹300 test reached the real gateway. Final confirmation is a **completed** transaction —
+money settles to the merchant and the booking is created. Optional hardening: configure the
+PhonePe dashboard **Webhooks** tab (not required — the return page polls status).
 
 ---
 
